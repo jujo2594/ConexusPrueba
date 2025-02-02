@@ -1,0 +1,6 @@
+@ConexusPruebaAPI_HostAddress = http://localhost:5190
+
+GET {{ConexusPruebaAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

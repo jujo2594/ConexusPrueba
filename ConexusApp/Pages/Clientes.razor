@@ -1,0 +1,18 @@
+﻿@page "/clientes"
+@inject HttpClient Http
+
+<PageTitle>Clientes</PageTitle>
+<h3>Clientes</h3>
+
+@code {
+    private List<ClienteGetDto> clientes = new List<ClienteGetDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Http.GetFromJsonAsync<List<ClienteGetDto>>("api/Cliente");
+        if(result is not null)
+        {
+            clientes = result;
+        }
+    }
+}
