@@ -14,7 +14,7 @@ namespace Domain.Interfaces
         Task<IEnumerable<T>> GetAllAsync(string miProcedimiento);
         IEnumerable<T> Find(Expression<Func<T, bool>> expression);
         Task<(int totalRegistros, IEnumerable<T> registros)> GetAllAsync(int pageIndex, int pageSize, string search);
-        void Add(T entity);
+        Task<int> AddAsync(T entidad, string nombreProcedimiento);
         void AddRange(IEnumerable<T> entities);
         void Remove(T entity);
         void RemoveRange(IEnumerable<T> entities);

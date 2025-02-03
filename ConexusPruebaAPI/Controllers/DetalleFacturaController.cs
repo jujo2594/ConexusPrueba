@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ConexusPruebaAPI.Dto.Cliente;
 using ConexusPruebaAPI.Dto.DetalleFactura;
 using Domain.Entities;
 using Domain.Interfaces;
@@ -45,51 +46,63 @@ namespace ConexusPruebaAPI.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<DetalleFacturaDto>>> Post(DetalleFacturaDto resultDto)
+        public async Task<ActionResult> Post(DetalleFacturaDto detalleFacturaDto)
         {
-            var result = _mapper.Map<DetalleFactura>(resultDto);
-            _unitOfWork.DetalleFacturas.Add(result);
-            await _unitOfWork.SaveAsync();
-            if (result == null)
+            var detalleFactura = _mapper.Map<DetalleFactura>(detalleFacturaDto);
+
+            int resultado = await _unitOfWork.DetalleFacturas.InsertarDetalleFactura(detalleFactura);
+
+            if (resultado <= 0)
             {
-                return BadRequest();
+                return BadRequest("Error al insertar detalle factura.");
             }
-            //resultDto.Id = resultDto.Id;
-            //return CreatedAtAction(nameof(Post), new { id = resultDto.Id }, resultDto);
-            var results = await _unitOfWork.DetalleFacturas.GetAllAsync("ObtenerDetalleFactura");
-            return _mapper.Map<List<DetalleFacturaDto>>(results);
+
+            return CreatedAtAction(nameof(Post), new { id = detalleFactura.Id }, detalleFacturaDto);
         }
 
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<DetalleFacturaDto>> Put(int id, [FromBody] DetalleFacturaDto resultDto)
+        public async Task<ActionResult<DetalleFacturaDto>> Put(int id, [FromBody] DetalleFacturaDto detalleFacturaDto)
         {
-            var result = await _unitOfWork.DetalleFacturas.GetByIdAsync(id, "ObtenerDetalleFacturaId");
-            if (result == null)
+            var detalleFacturaExistente = await _unitOfWork.DetalleFacturas.GetByIdAsync(id, "ObtenerDetalleFacturaId");
+            if (detalleFacturaExistente == null)
             {
                 return NotFound();
             }
-            result.Cantidad = resultDto.Cantidad;
-            result.PrecioUnitario = resultDto.PrecioUnitario;
-            result.Subtotal = resultDto.Subtotal;
-            await _unitOfWork.SaveAsync();
-            return _mapper.Map<DetalleFacturaDto>(result);
+
+            detalleFacturaExistente.Cantidad = detalleFacturaDto.Cantidad;
+            detalleFacturaExistente.PrecioUnitario = detalleFacturaDto.PrecioUnitario;
+            detalleFacturaExistente.Subtotal = detalleFacturaDto.Subtotal;
+            detalleFacturaExistente.FacturaId = detalleFacturaDto.FacturaId;
+            detalleFacturaExistente.ProductoId = detalleFacturaDto.ProductoId;
+
+            var resultado = await _unitOfWork.DetalleFacturas.ActualizarDetalleFactura(detalleFacturaExistente);
+
+            if (resultado == 0)
+            {
+                return BadRequest("No se pudo actualizar el detalle factura.");
+            }
+            return Ok(_mapper.Map<DetalleFacturaDto>(detalleFacturaExistente));
         }
 
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _unitOfWork.DetalleFacturas.GetByIdAsync(id, "ObtenerDetalleFacturaId");
-            if (result == null)
+            var detalleFacturaExistente = await _unitOfWork.DetalleFacturas.GetByIdAsync(id, "ObtenerDetalleFacturaId");
+            if (detalleFacturaExistente == null)
             {
                 return NotFound();
             }
-            _unitOfWork.DetalleFacturas.Remove(result);
-            await _unitOfWork.SaveAsync();
+            var resultado = await _unitOfWork.DetalleFacturas.EliminarDetalleFactura(id);
+            if (resultado == 0)
+            {
+                return BadRequest("No se pudo eliminar detalle factura.");
+            }
             return NoContent();
         }
     }

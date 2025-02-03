@@ -1,8 +1,10 @@
 ﻿using Domain.Entities;
 using Domain.Interfaces;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Persistence.Data;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -20,9 +22,28 @@ namespace App.Repositories
             _conexusContext = conexusContext;
         }
 
-        public virtual void Add(T entity)
+        public async Task<int> AddAsync(T entidad, string nombreProcedimiento)
         {
-            _conexusContext.Set<T>().Add(entity);
+            // Obtener todas las propiedades de la clase T, excluyendo las que son colecciones
+            var propiedades = typeof(T).GetProperties()
+                .Where(p => !typeof(IEnumerable).IsAssignableFrom(p.PropertyType))  // Excluir colecciones
+                .ToArray();
+
+            // Construir los nombres de los parámetros en la cadena SQL.
+            var parametrosSql = string.Join(", ", propiedades.Select(p => $"@{p.Name}"));
+
+            // Crear los parámetros de SQL utilizando las propiedades y sus valores correspondientes
+            var parametrosInterpolados = propiedades
+                .Select(p => new SqlParameter($"@{p.Name}", p.GetValue(entidad) ?? DBNull.Value))
+                .ToArray();
+
+            // Ejecutar el procedimiento almacenado con los parámetros generados dinámicamente
+            var result = await _conexusContext.Database.ExecuteSqlRawAsync(
+                $"EXEC {nombreProcedimiento} {parametrosSql}",
+                parametrosInterpolados
+            );
+
+            return result;
         }
 
         public virtual void AddRange(IEnumerable<T> entities)

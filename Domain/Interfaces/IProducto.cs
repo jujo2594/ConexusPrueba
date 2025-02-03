@@ -9,5 +9,8 @@ namespace Domain.Interfaces
 {
     public interface IProducto : IGenericRepository<Producto>
     {
+        Task<int> InsertarProducto(Producto producto);
+        Task<int> ActualizarProducto(Producto producto);
+        Task<int> EliminarProducto(int id);
     }
 }

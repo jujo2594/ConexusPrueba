@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ConexusPruebaAPI.Dto.Cliente;
 using ConexusPruebaAPI.Dto.Factura;
 using Domain.Entities;
 using Domain.Interfaces;
@@ -45,52 +46,61 @@ namespace ConexusPruebaAPI.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<FacturaDto>>> Post(FacturaDto resultDto)
+        public async Task<ActionResult> Post(FacturaDto facturaDto)
         {
-            var result = _mapper.Map<Factura>(resultDto);
-            _unitOfWork.Facturas.Add(result);
-            await _unitOfWork.SaveAsync();
-            if (result == null)
+            var factura = _mapper.Map<Factura>(facturaDto);
+
+            int resultado = await _unitOfWork.Facturas.InsertarFactura(factura);
+
+            if (resultado <= 0)
             {
-                return BadRequest();
+                return BadRequest("Error al insertar la factura.");
             }
-            var results = await _unitOfWork.Facturas.GetAllAsync("ObtenerFactura");
-            return _mapper.Map<List<FacturaDto>>(results);
-            //resultDto.Id = resultDto.Id;
-            //return CreatedAtAction(nameof(Post), new { id = resultDto.Id }, resultDto);
+
+            return CreatedAtAction(nameof(Post), new { id = factura.Id }, facturaDto);
         }
 
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<FacturaDto>> Put(int id, [FromBody] FacturaDto resultDto)
+        public async Task<ActionResult<FacturaDto>> Put(int id, [FromBody] FacturaDto facturaDto)
         {
-            var result = await _unitOfWork.Facturas.GetByIdAsync(id, "ObtenerFacturaId");
-            if (result == null)
+            var facturaExistente = await _unitOfWork.Facturas.GetByIdAsync(id, "ObtenerFacturaId");
+            if (facturaExistente == null)
             {
                 return NotFound();
             }
-            result.Fecha = resultDto.Fecha;
-            result.Total = resultDto.Total;
-            result.ClienteId = resultDto.ClienteId;
-            _mapper.Map(resultDto, result);
-            await _unitOfWork.SaveAsync();
-            return _mapper.Map<FacturaDto>(result);
+
+            facturaExistente.Fecha = facturaDto.Fecha;
+            facturaExistente.Total = facturaDto.Total;
+            facturaExistente.ClienteId = facturaDto.ClienteId;
+
+            var resultado = await _unitOfWork.Facturas.ActualizarFactura(facturaExistente);
+
+            if (resultado == 0)
+            {
+                return BadRequest("No se pudo actualizar la factura.");
+            }
+            return Ok(_mapper.Map<FacturaDto>(facturaExistente));
         }
 
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _unitOfWork.Facturas.GetByIdAsync(id, "ObtenerFacturaId");
-            if (result == null)
+            var facturaExistente = await _unitOfWork.Facturas.GetByIdAsync(id, "ObtenerFacturaId");
+            if (facturaExistente == null)
             {
                 return NotFound();
             }
-            _unitOfWork.Facturas.Remove(result);
-            await _unitOfWork.SaveAsync();
+            var resultado = await _unitOfWork.Facturas.EliminarFactura(id);
+            if (resultado == 0)
+            {
+                return BadRequest("No se pudo eliminar la factura.");
+            }
             return NoContent();
         }
     }

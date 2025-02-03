@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ConexusPruebaAPI.Dto.Cliente;
 using ConexusPruebaAPI.Dto.Producto;
 using Domain.Entities;
 using Domain.Interfaces;
@@ -45,52 +46,61 @@ namespace ConexusPruebaAPI.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<ProductoDto>>> Post(ProductoDto resultDto)
+        public async Task<ActionResult> Post(ProductoDto productoDto)
         {
-            var result = _mapper.Map<Producto>(resultDto);
-            _unitOfWork.Productos.Add(result);
-            await _unitOfWork.SaveAsync();
-            if (result == null)
+            var producto = _mapper.Map<Producto>(productoDto);
+
+            int resultado = await _unitOfWork.Productos.InsertarProducto(producto);
+
+            if (resultado <= 0)
             {
-                return BadRequest();
+                return BadRequest("Error al insertar el producto.");
             }
-            var results = await _unitOfWork.Productos.GetAllAsync("ObtenerProductos");
-            return _mapper.Map<List<ProductoDto>>(results);
-            //resultDto.Id = resultDto.Id;
-            //return CreatedAtAction(nameof(Post), new { id = resultDto.Id }, resultDto);
+
+            return CreatedAtAction(nameof(Post), new { id = producto.Id }, productoDto);
         }
 
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ProductoDto>> Put(int id, [FromBody] ProductoDto resultDto)
+        public async Task<ActionResult<ProductoDto>> Put(int id, [FromBody] ProductoDto productoDto)
         {
-            var result = await _unitOfWork.Productos.GetByIdAsync(id, "ObtenerProductosId");
-            if (result == null)
+            var productoExistente = await _unitOfWork.Productos.GetByIdAsync(id, "ObtenerProductosId");
+            if (productoExistente == null)
             {
                 return NotFound();
             }
-            result.Nombre = resultDto.Nombre;
-            result.Precio = resultDto.Precio;
-            result.Stock = resultDto.Stock;
-            _mapper.Map(resultDto, result);
-            await _unitOfWork.SaveAsync();
-            return _mapper.Map<ProductoDto>(result);
+
+            productoExistente.Nombre = productoDto.Nombre;
+            productoExistente.Precio = productoDto.Precio;
+            productoExistente.Stock = productoDto.Stock;
+
+            var resultado = await _unitOfWork.Productos.ActualizarProducto(productoExistente);
+
+            if (resultado == 0)
+            {
+                return BadRequest("No se pudo actualizar el cliente.");
+            }
+            return Ok(_mapper.Map<ProductoDto>(productoExistente));
         }
 
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _unitOfWork.Productos.GetByIdAsync(id, "ObtenerProductosId");
-            if (result == null)
+            var productoExistente = await _unitOfWork.Productos.GetByIdAsync(id, "ObtenerProductosId");
+            if (productoExistente == null)
             {
                 return NotFound();
             }
-            _unitOfWork.Productos.Remove(result);
-            await _unitOfWork.SaveAsync();
+            var resultado = await _unitOfWork.Productos.EliminarProducto(id);
+            if (resultado == 0)
+            {
+                return BadRequest("No se pudo eliminar el producto.");
+            }
             return NoContent();
         }
     }

@@ -9,5 +9,8 @@ namespace Domain.Interfaces
 {
     public interface IDetalleFactura : IGenericRepository<DetalleFactura>
     {
+        Task<int> InsertarDetalleFactura(DetalleFactura detalleFactura);
+        Task<int> ActualizarDetalleFactura(DetalleFactura detalleFactura);
+        Task<int> EliminarDetalleFactura(int id);
     }
 }

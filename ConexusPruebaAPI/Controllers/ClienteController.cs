@@ -45,53 +45,62 @@ namespace ConexusPruebaAPI.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<ClienteDto>>> Post(ClienteDto resultDto)
+        public async Task<ActionResult> Post(ClienteDto clienteDto)
         {
-            var result = _mapper.Map<Cliente>(resultDto);
-            _unitOfWork.Clientes.Add(result);
-            await _unitOfWork.SaveAsync();
-            if (result == null)
+            var cliente = _mapper.Map<Cliente>(clienteDto);
+
+            int resultado = await _unitOfWork.Clientes.InsertarCliente(cliente);
+
+            if (resultado <= 0)
             {
-                return BadRequest();
-            }   
-            var results = await _unitOfWork.Clientes.GetAllAsync("ObtenerClientes");
-            return _mapper.Map<List<ClienteDto>>(results);
-            //resultDto.Id = resultDto.Id;
-            //return CreatedAtAction(nameof(Post), new { id = resultDto.Id }, resultDto);
+                return BadRequest("Error al insertar el cliente.");
+            }
+            return CreatedAtAction(nameof(Post), new { id = cliente.Id }, clienteDto);
         }
 
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ClienteDto>> Put(int id, [FromBody] ClienteDto resultDto)
+        public async Task<ActionResult<ClienteDto>> Put(int id, [FromBody] ClienteDto clienteDto)
         {
-            var result = await _unitOfWork.Clientes.GetByIdAsync(id, "ObtenerClientesId");
-            if (result == null)
+            var clienteExistente = await _unitOfWork.Clientes.GetByIdAsync(id, "ObtenerClientesId");
+            if (clienteExistente == null)
             {
                 return NotFound();
             }
-            result.Telefono = resultDto.Telefono;
-            result.Correo = resultDto.Correo;
-            result.Nombre = resultDto.Nombre;
-            _mapper.Map(resultDto, result);
-            await _unitOfWork.SaveAsync();
-            return _mapper.Map<ClienteDto>(result);
+
+            clienteExistente.Nombre = clienteDto.Nombre;
+            clienteExistente.Correo = clienteDto.Correo;
+            clienteExistente.Telefono = clienteDto.Telefono;
+
+            var resultado = await _unitOfWork.Clientes.ActualizarCliente(clienteExistente);
+
+            if (resultado == 0)
+            {
+                return BadRequest("No se pudo actualizar el cliente.");
+            }
+            return Ok(_mapper.Map<ClienteDto>(clienteExistente));
         }
 
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Delete(int id)
         {
-            var result = await _unitOfWork.Clientes.GetByIdAsync(id, "ObtenerClientesId");
-            if (result == null)
+            var clienteExistente = await _unitOfWork.Clientes.GetByIdAsync(id, "ObtenerClientesId");
+            if (clienteExistente == null)
             {
                 return NotFound();
             }
-            _unitOfWork.Clientes.Remove(result);
-            await _unitOfWork.SaveAsync();
-            return NoContent();
+            var resultado = await _unitOfWork.Clientes.EliminarCliente(id);
+            if (resultado == 0) 
+            {
+                return BadRequest("No se pudo eliminar el cliente.");
+            }
+            return NoContent(); 
         }
+
     }
 }

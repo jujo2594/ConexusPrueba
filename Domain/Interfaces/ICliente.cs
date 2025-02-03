@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿using ConexusPruebaAPI.Dto.Cliente;
+using Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,8 @@ namespace Domain.Interfaces
 {
     public interface ICliente : IGenericRepository<Cliente>
     {
-        //Task<IEnumerable<Cliente>> GetClienteByProcedimiento();
-        //Task<IEnumerable<Cliente>> GetClienteByProcedimiento();
+        Task<int> InsertarCliente(Cliente cliente);
+        Task<int> ActualizarCliente(Cliente cliente);
+        Task<int> EliminarCliente(int id);
     }
 }
